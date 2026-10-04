@@ -2,7 +2,7 @@
 
 **Tech-Triathlon 2026 · Hackathon submission.** One delivery record that runs from the store's order through the dispatcher's plan, the loading dock and the driver's phone, back to the store's receipt confirmation. It is built for Waypoint Group's shared fleet, where demand regularly exceeds capacity and field connectivity drops.
 
-- **Deployed:** `https://<your-render-url>` *(see [Deployment](#deployment))*
+- **Deployed:** https://waypointrelay-5crm.onrender.com (free tier: the first visit after idle can take about a minute to wake)
 - **Docs:** [architecture](docs/architecture.md) · [data model](docs/data-model.md) · [AI tool disclosure](docs/ai-disclosure.md)
 
 ## Seeded accounts
@@ -99,7 +99,7 @@ scripts/        export-s1.ts: planner output in Task 2B format, for the organize
 
 ## Deployment
 
-The app is deployed on Render from `render.yaml` (a Docker web service plus PostgreSQL). On the free plan the service sleeps after 15 minutes idle, so **the first request can take about a minute**.
+The app runs as a Docker web service on Render (free instance) with its database on Supabase PostgreSQL. The database was seeded once from the competition files using `npm run seed -w apps/server` with `DATABASE_URL` and `DATABASE_SSL=true` set, so no data is in the image. Environment: `DATABASE_URL`, `DATABASE_SSL=true`, `JWT_SECRET`, with health check `/api/health`. The free instance sleeps after 15 minutes idle, so **the first request can take about a minute**. `render.yaml` is an optional Blueprint alternative using Render's own Postgres.
 
 ## Data use
 

@@ -68,4 +68,4 @@ On S1 the engine serves 73 of 85 orders with zero violations, and its output pas
 ## Deployment
 
 - `docker compose up` builds the app image, starts PostgreSQL 16, waits for its health check, then the app applies the schema and seed.
-- Render: `render.yaml` defines a Docker web service and a Postgres database (free plan).
+- Production: Render Docker web service plus Supabase PostgreSQL, seeded once from the competition files. No dataset files are in the repository or the image; `docker compose` mounts them from `seed/data/`.
