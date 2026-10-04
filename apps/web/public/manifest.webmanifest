@@ -1,0 +1,3 @@
+{ "name": "Waypoint Relay", "short_name": "Relay", "start_url": "/", "display": "standalone",
+  "background_color": "#f6f3ee", "theme_color": "#0f5c5c",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }] }
