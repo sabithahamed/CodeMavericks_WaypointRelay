@@ -130,3 +130,13 @@ CREATE TABLE IF NOT EXISTS fuel_ledger (
 CREATE TABLE IF NOT EXISTS sync_log (
   client_id uuid PRIMARY KEY, kind text NOT NULL, user_id int REFERENCES users, at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Snapshot of the seeded scenario so "Reset demo day" works without the source files.
+CREATE TABLE IF NOT EXISTS scenario_orders (
+  order_ref text PRIMARY KEY, outlet_id text NOT NULL REFERENCES outlets, temp_requirement text NOT NULL,
+  units int NOT NULL, weight_kg numeric NOT NULL, volume_m3 numeric NOT NULL,
+  deferred_yesterday boolean NOT NULL, days_since_last_served int NOT NULL
+);
+CREATE TABLE IF NOT EXISTS scenario_fleet (
+  vehicle_id text PRIMARY KEY REFERENCES vehicles, status text NOT NULL
+);

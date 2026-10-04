@@ -1,5 +1,5 @@
 # `docker compose up` starts the database and the app; the app creates the schema and
-# seeds the shared datasets, the four demo accounts and the Scenario S1 delivery day.
+# seeds the shared datasets (copied into seed/data/ first, see seed/data/README.md), the four demo accounts and the Scenario S1 delivery day.
 services:
   db:
     image: postgres:16-alpine
@@ -26,6 +26,9 @@ services:
       PORT: 8080
     ports:
       - "${APP_PORT:-8080}:8080"
+    volumes:
+      # Competition datasets, copied in locally (not redistributed; see seed/data/README.md)
+      - ./seed/data:/app/seed/data:ro
 
 volumes:
   pgdata:

@@ -10,6 +10,7 @@ export function DispatchOutlook() {
   useEffect(() => { api('/dispatch/outlook').then(setO).catch((e) => setError(e.message)); }, []);
   if (!o) return <main className="page">{error ? <ErrorNote error={error} /> : <Loading />}</main>;
   const series = o.series.filter((s: any) => s.depot === depot);
+  if (o.series.length === 0) return <main className="page"><h1>Capacity outlook</h1><Banner tone="info" icon="ℹ">No order history was loaded, so there is no outlook yet. Add calendar.csv, deliveries_train.csv and task1_test_inputs.csv to seed/data (see seed/data/README.md) and reseed an empty database.</Banner></main>;
   const reefer = o.fleet.find((f: any) => f.depot === depot && f.temp === 'reefer');
   const all = o.fleet.filter((f: any) => f.depot === depot).reduce((t: number, f: any) => t + f.volume_per_trip, 0);
   const weeks = series[0]?.forecast.map((f: any) => f.iso_week) ?? [];

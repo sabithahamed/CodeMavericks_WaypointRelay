@@ -1,10 +1,10 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import bcrypt from 'bcryptjs';
 import type pg from 'pg';
 import { pool, tx } from '../db.js';
-import { loadDistricts, loadOutlets, loadVehicles, readCsv } from './fixtures.js';
+import { SEED_DIR, loadDistricts, loadOutlets, readCsv } from './fixtures.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -28,9 +28,26 @@ export async function applySchema(c: pg.PoolClient | pg.Pool = pool) {
   await c.query(readFileSync(resolve(here, '../schema.sql'), 'utf8'));
 }
 
+/** Files from the competition dataset that must be copied into seed/data (see seed/data/README.md). */
+export const REQUIRED_FILES = ['outlets.csv', 'vehicles.csv', 'district_travel.csv', 'service_allowance.csv', 'task2b_peak_day_scenarios.csv', 'task2b_peak_day_fleet.csv'];
+/** Optional: order history for the capacity outlook. */
+export const OPTIONAL_FILES = ['calendar.csv', 'deliveries_train.csv', 'task1_test_inputs.csv'];
+
+function assertSeedFiles() {
+  const missing = REQUIRED_FILES.filter((f) => !existsSync(resolve(SEED_DIR, f)));
+  if (missing.length) {
+    throw new Error(
+      `Seed data missing from ${SEED_DIR}: ${missing.join(', ')}.
+` +
+        'The competition datasets are not redistributed in this repository. Copy them from the Tech-Triathlon dataset folder into seed/data/ (see seed/data/README.md), then start again.',
+    );
+  }
+}
+
 async function seedReference(c: pg.PoolClient) {
   const { rows } = await c.query('SELECT count(*)::int AS n FROM outlets');
   if (rows[0].n > 0) return;
+  assertSeedFiles();
   for (const o of loadOutlets()) {
     await c.query('INSERT INTO outlets VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)', [o.outlet_id, o.brand, o.district, o.depot, o.dock_type, o.parking_constraint, o.mall_window, o.window_open_time, o.window_close_time]);
   }
@@ -44,8 +61,42 @@ async function seedReference(c: pg.PoolClient) {
   for (const a of readCsv('service_allowance.csv')) {
     await c.query('INSERT INTO service_allowance VALUES ($1,$2,$3)', [a.brand, a.dock_type, a.service_allowance_min]);
   }
-  for (const w of readCsv('weekly_demand.csv')) {
-    await c.query('INSERT INTO weekly_demand VALUES ($1,$2,$3,$4,$5,$6,$7)', [w.depot, w.brand, w.iso_year, w.iso_week, w.total_volume_m3, w.chilled_volume_m3, w.orders]);
+  for (const r of readCsv('task2b_peak_day_scenarios.csv')) {
+    await c.query('INSERT INTO scenario_orders VALUES ($1,$2,$3,$4,$5,$6,$7,$8)', [r.order_ref, r.outlet_id, r.temp_requirement, r.order_units, r.order_weight_kg, r.order_volume_m3, r.deferred_yesterday === '1', r.days_since_last_served]);
+  }
+  for (const r of readCsv('task2b_peak_day_fleet.csv')) {
+    await c.query('INSERT INTO scenario_fleet VALUES ($1,$2)', [r.vehicle_id, r.status]);
+  }
+  await seedWeeklyDemand(c);
+}
+
+/**
+ * Weekly requested demand by depot and brand, from the order history if it was supplied.
+ * Every order counts once in the ISO week it was requested, including deferred and never-run ones.
+ */
+async function seedWeeklyDemand(c: pg.PoolClient) {
+  if (!OPTIONAL_FILES.every((f) => existsSync(resolve(SEED_DIR, f)))) {
+    console.log('Order history not supplied; the capacity outlook will be empty.');
+    return;
+  }
+  const week = new Map(readCsv('calendar.csv').map((r) => [r.date, [Number(r.iso_year), Number(r.iso_week)] as const]));
+  const agg = new Map<string, { total: number; chilled: number; n: number }>();
+  for (const file of ['deliveries_train.csv', 'task1_test_inputs.csv']) {
+    for (const r of readCsv(file)) {
+      const w = week.get(r.order_date);
+      if (!w) continue;
+      const key = `${r.depot}|${r.brand}|${w[0]}|${w[1]}`;
+      const a = agg.get(key) ?? { total: 0, chilled: 0, n: 0 };
+      const v = Number(r.order_volume_m3);
+      a.total += v;
+      if (r.temp_requirement === 'chilled') a.chilled += v;
+      a.n += 1;
+      agg.set(key, a);
+    }
+  }
+  for (const [key, a] of agg) {
+    const [depot, brand, y, w] = key.split('|');
+    await c.query('INSERT INTO weekly_demand VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING', [depot, brand, Number(y), Number(w), Math.round(a.total * 1000) / 1000, Math.round(a.chilled * 1000) / 1000, a.n]);
   }
 }
 
@@ -63,16 +114,14 @@ async function seedUsers(c: pg.PoolClient) {
 /** (Re)creates the demo delivery day with the S1 orders, wiping operational state. */
 export async function seedDemoDay(c: pg.PoolClient) {
   await c.query('TRUNCATE sync_log, events, exceptions, receipts, delivery_records, load_checks, trip_runs, plans, orders, delivery_days, fuel_ledger RESTART IDENTITY CASCADE');
-  const workshop = readCsv('task2b_peak_day_fleet.csv').filter((r) => r.status === 'in_workshop').map((r) => r.vehicle_id);
+  const workshop = (await c.query(`SELECT vehicle_id FROM scenario_fleet WHERE status = 'in_workshop' ORDER BY vehicle_id`)).rows.map((r) => r.vehicle_id);
   const { rows } = await c.query('INSERT INTO delivery_days (delivery_date, depot, label, workshop) VALUES ($1,$2,$3,$4) RETURNING id', [DEMO_DAY.date, DEMO_DAY.depot, DEMO_DAY.label, workshop]);
   const dayId = rows[0].id;
-  for (const r of readCsv('task2b_peak_day_scenarios.csv')) {
-    await c.query(
-      `INSERT INTO orders (id, day_id, requested_date, outlet_id, temp_requirement, units, weight_kg, volume_m3, deferred_yesterday, days_since_last_served, source)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'S1')`,
-      [r.order_ref, dayId, DEMO_DAY.date, r.outlet_id, r.temp_requirement, r.order_units, r.order_weight_kg, r.order_volume_m3, r.deferred_yesterday === '1', r.days_since_last_served],
-    );
-  }
+  await c.query(
+    `INSERT INTO orders (id, day_id, requested_date, outlet_id, temp_requirement, units, weight_kg, volume_m3, deferred_yesterday, days_since_last_served, source)
+     SELECT order_ref, $1, $2, outlet_id, temp_requirement, units, weight_kg, volume_m3, deferred_yesterday, days_since_last_served, 'S1' FROM scenario_orders ORDER BY order_ref`,
+    [dayId, DEMO_DAY.date],
+  );
   await c.query(
     `INSERT INTO events (order_id, day_id, kind, actor_role, actor_name, message)
      SELECT id, $1, 'order_confirmed', 'system', 'Seed', 'Order confirmed into the delivery queue (Scenario S1 import).' FROM orders`,

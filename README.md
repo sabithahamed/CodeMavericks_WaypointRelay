@@ -20,6 +20,10 @@ The seeded delivery day is **Scenario S1** (Mon 5 Oct 2026, Peliyagoda): 85 orde
 
 ## Run it
 
+**1. Add the seed data.** The competition datasets may not be redistributed (Challenge Booklet, Terms and Conditions), so they are **not in this repository**. Copy the six required CSVs from the Tech-Triathlon dataset folder into `seed/data/`. The exact list and a copy command are in [seed/data/README.md](seed/data/README.md).
+
+**2. Start the stack.**
+
 ```bash
 docker compose up --build
 ```
@@ -88,7 +92,7 @@ Weight **and** volume per trip · refrigerated vehicles for chilled orders · va
 ```
 apps/server     Express API (TypeScript): planner/, routes/, services/, seed/, schema.sql, tests
 apps/web        React web app (Vite): pages per role, offline outbox, service worker
-seed/data       Shared competition datasets used for seeding (competition use only)
+seed/data       Place the competition CSVs here (not committed; see its README)
 docs/           Architecture, data model, AI tool disclosure
 scripts/        export-s1.ts: planner output in Task 2B format, for the organizers' validator
 ```
@@ -99,4 +103,4 @@ The app is deployed on Render from `render.yaml` (a Docker web service plus Post
 
 ## Data use
 
-`seed/data` contains the competition's synthetic datasets, which are needed to seed the system. They are provided for Tech-Triathlon 2026 judging only and must not be redistributed. This repository is private for that reason.
+The competition datasets are used only to seed the system and are **not committed**: the booklet's terms forbid publishing them or any derivatives. `docker compose up` reads them from `seed/data/` on your machine. The deployed instance was seeded directly into its database.
