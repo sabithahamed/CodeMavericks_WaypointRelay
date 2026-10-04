@@ -141,7 +141,7 @@ export function StoreOrder() {
 
       <section className="card stack">
         <h2>Delivery and receipt</h2>
-        <div className="small"><strong>Driver's record:</strong> {o.record ? `${o.record.outcome}, ${o.record.delivered_units} units, condition ${o.record.condition ?? 'not stated'}${o.record.recipient ? `, received by ${o.record.recipient}` : ''}. Proof photo: ${o.record.proof_status === 'uploaded' ? 'uploaded' : o.record.proof_status === 'pending' ? 'still uploading from the driver\'s phone' : 'none'}.` : 'Not yet received from the driver.'}</div>
+        <div className="small"><strong>Driver's record:</strong> {o.record ? `${o.record.outcome}, ${o.record.delivered_units} units, condition ${o.record.condition ?? 'not stated'}${o.record.recipient ? `, received by ${o.record.recipient.replace(/\.$/, '')}` : ''}. Proof photo: ${o.record.proof_status === 'uploaded' ? 'uploaded' : o.record.proof_status === 'pending' ? 'still uploading from the driver\'s phone' : 'none'}.` : 'Not yet received from the driver.'}</div>
         <div className="small"><strong>Your confirmation:</strong> {o.receipt ? `${o.receipt.status === 'confirmed' ? 'Confirmed' : 'Issue reported'}: ${o.receipt.received_units} units${o.receipt.note ? `, “${o.receipt.note}”` : ''} at ${fmtDateTime(o.receipt.confirmed_at)}.` : 'Not confirmed yet.'}</div>
         {canConfirm && !mode && (
           <div className="seg">

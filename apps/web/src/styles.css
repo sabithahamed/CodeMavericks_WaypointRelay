@@ -134,7 +134,9 @@ tr.selected td { background: var(--action-soft); }
 }
 @media (max-width: 600px) {
   .page { padding: .75rem; }
-  .topbar { flex-wrap: wrap; }
-  .nav { width: 100%; overflow-x: auto; flex-wrap: nowrap; }
+  .topbar { flex-wrap: wrap; row-gap: .3rem; }
+  .topbar > button { margin-left: auto; min-height: 32px; padding: .3rem .5rem; }
+  .nav { order: 3; width: 100%; overflow-x: auto; flex-wrap: nowrap; }
+  .nav a { white-space: nowrap; }
   .hide-sm { display: none; }
 }
