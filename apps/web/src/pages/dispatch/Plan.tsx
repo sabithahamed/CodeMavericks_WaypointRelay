@@ -83,6 +83,13 @@ export function DispatchPlan() {
         <Banner tone="block" icon="✕"><strong>This plan cannot be published yet.</strong> {plan.violations.slice(0, 3).map((v: any) => v.message).join(' ')}</Banner>
       )}
 
+      {plan && (
+        <div className="plan-grid top">
+          <FleetTimeline trips={plan.trips} onSelect={setSelected} />
+          <DecisionQueue plan={plan} orders={orders} />
+        </div>
+      )}
+
       <div className="plan-grid">
         <section className="card" aria-label="Order queue">
           <div className="row spread"><h2>Order queue</h2><span className="muted small">{shown.length} shown</span></div>
@@ -221,5 +228,67 @@ function OrderDrawer({ orderId, state, placement, onClose, onChange, editable }:
         <ol className="timeline">{events.map((e) => <li key={e.id}><div className="t">{new Date(e.at).toLocaleString('en-GB', { timeZone: 'Asia/Colombo', hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })} · {e.actor_name}</div>{e.message}</li>)}</ol>
       </aside>
     </>
+  );
+}
+
+const T0 = 3 * 60 + 30;
+const T1 = 17 * 60;
+const pct = (m: number) => `${((Math.min(Math.max(m, T0), T1) - T0) / (T1 - T0)) * 100}%`;
+
+/** Figma "Fleet choreography": each vehicle's trips on one time axis, coloured by brand. */
+function FleetTimeline({ trips, onSelect }: { trips: any[]; onSelect(id: string): void }) {
+  const byVehicle = new Map<string, any[]>();
+  for (const t of trips) byVehicle.set(t.vehicle_id, [...(byVehicle.get(t.vehicle_id) ?? []), t]);
+  const rows = [...byVehicle.entries()].sort((a, b) => (a[1][0].schedule?.depart_min ?? 0) - (b[1][0].schedule?.depart_min ?? 0));
+  return (
+    <section className="card" aria-label="Fleet choreography">
+      <div className="row spread">
+        <div><h2>Fleet choreography</h2><p className="muted small">Each bar is one trip from departure to return at the depot (planning estimate). Max two per vehicle.</p></div>
+        <div className="row" style={{ gap: '.3rem' }}>{['Fresh', 'Tech', 'Style'].map((b) => <span key={b} className={`chip brandchip-${b}`}>{b}</span>)}</div>
+      </div>
+      <div className="gantt" style={{ marginTop: '.6rem' }}>
+        <span />
+        <div className="axis">{['03:30', '06:00', '08:30', '11:00', '13:30', '16:00'].map((t) => { const [h, m] = t.split(':').map(Number); return <span key={t} style={{ left: pct(h * 60 + m) }}>{t}</span>; })}</div>
+        {rows.map(([vid, ts]) => (
+          <div key={vid} style={{ display: 'contents' }}>
+            <span><strong>{vid}</strong> <span className="muted">{ts[0].vehicle.temp === 'reefer' ? '❄ reefer' : 'ambient'} {ts[0].vehicle.type}</span></span>
+            <div className="lane">
+              {ts.filter((t: any) => t.schedule).map((t: any) => (
+                <button key={t.trip_no} className={`bar brandchip-${t.brand}`} title={`${vid} trip ${t.trip_no}: ${t.brand} ${t.district}, ${t.order_ids.length} stops`}
+                  style={{ left: pct(t.schedule.depart_min), width: `calc(${pct(t.schedule.return_min)} - ${pct(t.schedule.depart_min)})`, minHeight: 0, padding: '0 .4rem' }}
+                  onClick={() => onSelect(t.order_ids[0])}>
+                  T{t.trip_no} · {t.district}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/** Figma "Decision queue": what the dispatcher must understand before publishing. */
+function DecisionQueue({ plan, orders }: { plan: any; orders: any[] }) {
+  const byId = Object.fromEntries(orders.map((o) => [o.id, o]));
+  const oversize = plan.deferred.filter((d: any) => d.code === 'exceeds_vehicle_capacity');
+  const chilledShort = plan.deferred.filter((d: any) => d.code === 'capacity_shortage' && byId[d.order_id]?.temp_requirement === 'chilled');
+  const otherShort = plan.deferred.filter((d: any) => d.code !== 'exceeds_vehicle_capacity' && !chilledShort.includes(d));
+  const repeat = plan.deferred.filter((d: any) => byId[d.order_id]?.deferred_yesterday);
+  const items = [
+    ...plan.violations.slice(0, 2).map((v: any) => ({ tone: 'block', title: 'Rule broken', text: v.message })),
+    ...oversize.map((d: any) => ({ tone: 'block', title: `Oversize order ${d.order_id}`, text: `${byId[d.order_id]?.volume_m3} m³ exceeds every available vehicle. Deferral does not solve it; the order must change.` })),
+    ...(chilledShort.length ? [{ tone: 'attention', title: 'Refrigerated capacity', text: `${chilledShort.length} chilled order(s) deferred: ${chilledShort.map((d: any) => d.order_id).join(', ')}. Demand exceeds two-trip reefer capacity.` }] : []),
+    ...(otherShort.length ? [{ tone: 'attention', title: 'Other deferrals', text: `${otherShort.map((d: any) => d.order_id).join(', ')}` }] : []),
+    ...(repeat.length ? [{ tone: 'attention', title: 'Skipped again', text: `${repeat.map((d: any) => d.order_id).join(', ')} also missed the previous run.` }] : []),
+  ];
+  return (
+    <section className="card stack" aria-label="Decision queue">
+      <div><h2>Decision queue</h2><p className="muted small">Resolve or accept before publishing.</p></div>
+      {items.length === 0 && <p className="muted small">No open decisions. Every order is served.</p>}
+      {items.map((it, i) => <div key={i} className={`decision ${it.tone}`}><h3>{it.title}</h3><p>{it.text}</p></div>)}
+      {plan.status === 'draft' && <Link to="/dispatch/review" className="btn primary">Review {items.length} decision{items.length === 1 ? '' : 's'}</Link>}
+      <Link to="/dispatch/outlook" className="darkbar small"><span>Next weeks · chilled capacity outlook</span><strong>Open →</strong></Link>
+    </section>
   );
 }

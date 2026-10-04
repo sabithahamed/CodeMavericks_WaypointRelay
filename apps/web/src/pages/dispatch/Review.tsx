@@ -35,7 +35,7 @@ export function DispatchReview() {
     <main className="page stack" style={{ maxWidth: 1000 }}>
       <div className="row spread">
         <div>
-          <h1>Review & publish · plan v{r.version}</h1>
+          <h1>Review before publish · plan v{r.version}</h1>
           <p className="muted small">{r.previous_version ? `Compared with published v${r.previous_version}.` : 'First version for this day: every order is new.'}</p>
         </div>
         <Link to="/dispatch">← Back to daily plan</Link>
@@ -83,6 +83,16 @@ export function DispatchReview() {
           <p className="muted small">Changed trips return to “To load”; loaders must acknowledge the revised list and drivers see the new version when they next connect.</p>
         </section>
       )}
+
+      <section className="card">
+        <h2>What changes downstream</h2>
+        <table className="small"><tbody>
+          <tr><td><span className="avatar">L</span></td><td><strong>Loader</strong><div>v{r.version} loading lists replace any earlier list; {r.trips.length} trips to load, each acknowledged before release.</div></td></tr>
+          <tr><td><span className="avatar">D</span></td><td><strong>Driver</strong><div>Sees the trip sequence and planned arrival times before starting; the run is saved to the phone for offline use.</div></td></tr>
+          <tr><td><span className="avatar">S</span></td><td><strong>Store</strong><div>{r.summary.served} orders get an expected arrival; {r.summary.deferred} get the deferral reason shown above.</div></td></tr>
+          <tr><td><span className="avatar">D</span></td><td><strong>Dispatch</strong><div>{r.deferred.filter((d: any) => d.code === 'exceeds_vehicle_capacity').map((d: any) => d.order_id).join(', ') || 'No order'} stays open for an order change.</div></td></tr>
+        </tbody></table>
+      </section>
 
       {!published ? (
         <section className="card stack">

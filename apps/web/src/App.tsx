@@ -12,10 +12,10 @@ import { StoreOrders, StoreNewOrder, StoreOrder } from './pages/Store';
 
 const NAV: Record<Role, { to: string; label: string }[]> = {
   dispatcher: [
-    { to: '/dispatch', label: 'Daily plan' },
-    { to: '/dispatch/review', label: 'Review & publish' },
-    { to: '/dispatch/progress', label: 'Progress & exceptions' },
-    { to: '/dispatch/outlook', label: 'Capacity outlook' },
+    { to: '/dispatch', label: 'Plan' },
+    { to: '/dispatch/review', label: 'Review' },
+    { to: '/dispatch/progress', label: 'Runs & exceptions' },
+    { to: '/dispatch/outlook', label: 'Capacity' },
   ],
   loader: [{ to: '/loader', label: 'Runs to load' }],
   driver: [
@@ -36,14 +36,15 @@ function Shell({ role, children }: { role: Role; children: ReactNode }) {
   return (
     <>
       <header className="topbar">
-        <NavLink to={HOME[role]} className="brand"><img src="/icon.svg" alt="" />Waypoint Relay</NavLink>
+        <NavLink to={HOME[role]} className="brand" style={{ color: 'var(--text)' }}><img src="/icon.svg" alt="" />Waypoint <span className="relay">Relay</span></NavLink>
         <nav className="nav" aria-label="Main">
           {NAV[role].map((n) => <NavLink key={n.to} to={n.to} end>{n.label}</NavLink>)}
         </nav>
         <div className="who">
-          <div><strong>{user.name}</strong> · {ROLE_LABEL[role]}</div>
+          <div><strong>{ROLE_LABEL[role]}</strong> · {user.name}</div>
           <div>{user.outlet_id ?? user.vehicle_id ?? user.depot}</div>
         </div>
+        <span className="avatar hide-sm" aria-hidden>{ROLE_LABEL[role][0]}</span>
         <button className="ghost" onClick={logout}>Sign out</button>
       </header>
       {children}

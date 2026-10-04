@@ -184,6 +184,7 @@ export function DriverStop() {
         {existing && !saved && <Banner tone="info" icon="ℹ">Already recorded: {existing.outcome}. <LocalState item={existing} outbox={d.outbox} /> Saving again adds a correction for the dispatcher.</Banner>}
         {saved ? (
           <>
+            <h2>Delivery captured</h2>
             <Banner tone={network.isOnline() ? 'ok' : 'attention'} icon={network.isOnline() ? '✓' : '📱'}>{saved}</Banner>
             {existing && <p><LocalState item={existing} outbox={d.outbox} /></p>}
             <button className="primary block-btn" onClick={() => nav('/driver')}>Back to run</button>
@@ -241,7 +242,8 @@ export function DriverSaved() {
     <>
       <NetBar {...d} />
       <main className="page narrow field-ui stack">
-        <h1>Saved work & uploads</h1>
+        <h1>Sync queue</h1>
+        <p className="muted small">What is saved on this phone, what has reached the office, and what needs someone else.</p>
         {pending.length === 0 && conflicts.length === 0 && <Banner tone="ok" icon="✓">Everything recorded on this phone has reached the office.</Banner>}
         {pending.length > 0 && (
           <Banner tone="attention" icon="📱">

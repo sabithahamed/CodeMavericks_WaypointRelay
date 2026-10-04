@@ -140,7 +140,8 @@ export function StoreOrder() {
       <Banner tone={o.deferral ? 'attention' : o.record ? 'ok' : 'info'} icon={o.deferral ? '⏸' : o.record ? '🚚' : '🕓'}>{arrivalLine(o)}{o.deferral && <div><strong>Reason:</strong> {o.deferral.reason}</div>}</Banner>
 
       <section className="card stack">
-        <h2>Delivery and receipt</h2>
+        <h2>{o.record ? 'Delivery arrived' : 'Delivery and receipt'}</h2>
+        <p className="muted small">The driver's report and your confirmation are two separate records; confirming never overwrites the driver's report.</p>
         <div className="small"><strong>Driver's record:</strong> {o.record ? `${o.record.outcome}, ${o.record.delivered_units} units, condition ${o.record.condition ?? 'not stated'}${o.record.recipient ? `, received by ${o.record.recipient.replace(/\.$/, '')}` : ''}. Proof photo: ${o.record.proof_status === 'uploaded' ? 'uploaded' : o.record.proof_status === 'pending' ? 'still uploading from the driver\'s phone' : 'none'}.` : 'Not yet received from the driver.'}</div>
         <div className="small"><strong>Your confirmation:</strong> {o.receipt ? `${o.receipt.status === 'confirmed' ? 'Confirmed' : 'Issue reported'}: ${o.receipt.received_units} units${o.receipt.note ? `, “${o.receipt.note}”` : ''} at ${fmtDateTime(o.receipt.confirmed_at)}.` : 'Not confirmed yet.'}</div>
         {canConfirm && !mode && (

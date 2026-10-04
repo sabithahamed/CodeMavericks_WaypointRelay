@@ -70,7 +70,7 @@ export function LoaderRun() {
       {openEx.length === 0 && r.exceptions.some((e: any) => e.status === 'resolved') && <Banner tone="ok" icon="✓">Dispatcher decided: {r.exceptions.find((e: any) => e.status === 'resolved').resolution}</Banner>}
       <ErrorNote error={error} />
 
-      <h2>Load in this order <span className="muted small">(last stop first, so stop 1 is nearest the door)</span></h2>
+      <h2>Load manifest <span className="muted small">(load in this order: last stop first, so stop 1 is nearest the door)</span></h2>
       {r.load_order.map((s: any, i: number) => {
         const c = checkOf(s.order_id);
         return (
@@ -96,11 +96,22 @@ export function LoaderRun() {
         );
       })}
 
-      {!locked && (
-        <button className="primary block-btn" disabled={!allChecked || openEx.length > 0 || needsAck} onClick={() => call('/release')}>
-          {openEx.length ? 'Held: waiting for dispatcher' : allChecked ? 'Release for departure' : `Check all ${r.stops.length} orders to release`}
-        </button>
-      )}
+      <section className="card stack" aria-label="Departure readiness">
+        <div><h2>Departure readiness</h2><p className="muted small">Trip {trip} · planned departure {r.trip.depart ?? '—'}{r.trip.brand === 'Fresh' ? ', before the Fresh opening windows' : ''}</p></div>
+        <ul className="ready-list">
+          {[
+            { ok: r.trip.vehicle.temp === 'reefer' || r.stops.every((s: any) => s.temp_requirement !== 'chilled'), label: r.trip.vehicle.temp === 'reefer' ? 'Refrigeration ready for chilled orders' : 'No chilled goods on an ambient vehicle' },
+            { ok: !needsAck, label: `Working from plan v${r.plan_version}` },
+            { ok: allChecked, label: `Orders checked (${r.checks.length}/${r.stops.length})` },
+            { ok: openEx.length === 0, label: 'No unresolved shortfall' },
+          ].map((c) => <li key={c.label}><span className={`tick ${c.ok ? 'yes' : 'no'}`} aria-label={c.ok ? 'done' : 'not yet'}>{c.ok ? '✓' : '·'}</span>{c.label}</li>)}
+        </ul>
+        {!locked && (
+          <button className="primary block-btn" disabled={!allChecked || openEx.length > 0 || needsAck} onClick={() => call('/release')}>
+            {openEx.length ? 'Held: waiting for dispatcher' : allChecked ? 'Mark ready for departure' : `Check all ${r.stops.length} orders to release`}
+          </button>
+        )}
+      </section>
       {locked && <Banner tone="ok" icon="✓">Released for departure. The driver can start this run.</Banner>}
     </main>
   );
