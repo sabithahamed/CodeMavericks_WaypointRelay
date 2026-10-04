@@ -1,0 +1,19 @@
+# Render Blueprint: one Docker web service + one Postgres database (free tier).
+services:
+  - type: web
+    name: waypoint-relay
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: waypoint-relay-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+databases:
+  - name: waypoint-relay-db
+    plan: free
+    databaseName: relay
+    user: relay

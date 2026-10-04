@@ -48,6 +48,7 @@ export function DispatchPlan() {
           <p className="muted small">{day.label}</p>
         </div>
         <div className="row">
+          <button className="ghost small" disabled={busy} title="Restores the seeded Scenario S1 day for a fresh walkthrough" onClick={() => { if (confirm('Reset the demo day? All orders, plans and records from this walkthrough are replaced with the seeded Scenario S1 day.')) void act(async () => { await api('/dispatch/reset', { method: 'POST' }); return loadDay(); }); }}>Reset demo day</button>
           {day.status === 'open' ? (
             <button className="primary" disabled={busy} onClick={() => act(() => api('/dispatch/day/close', { method: 'POST' }))}>Close orders (cutoff 16:00)</button>
           ) : (
