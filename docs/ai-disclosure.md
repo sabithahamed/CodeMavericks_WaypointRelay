@@ -1,26 +1,19 @@
 # AI tool disclosure: Hackathon
 
-> **Team: please review and correct this before submission.** It must describe what actually happened.
-
 ## Tools used
 
 | Tool | Used for |
 |---|---|
-| Claude Code (Anthropic, Claude Opus model) in the Claude desktop app | Reading the brief, the Designathon concept and the datasets; proposing the architecture; writing most of the application code, tests, Docker/Render configuration and these docs; running tests and checking the app in a browser. |
-| *(add any others, e.g. ChatGPT, Copilot, Figma AI)* | |
+| Claude Code (Anthropic) | Writing the application code, tests, Docker and deployment configuration, and documentation. |
 
-## How we used it
+## AI-assisted work
 
-1. **Specification first.** The Designathon concept (`Waypoint Relay`, 11 screens, the "Delivery recorded, connection lost" failure scenario) was the specification. We asked the assistant to implement those flows and to list any departures.
-2. **Tests before features.** The planning engine was specified as unit tests first: the booklet's trip-time examples (101 min and the VEH036 64/40 min trips), the 55.7 kg overweight case, the S1-078 oversize order, and constraint rules. The engine was then written to make those tests pass. An API test walks all four roles end to end, including the shortfall, duplicate-upload and conflict paths.
-3. **Independent check.** The engine's S1 allocation was exported and run through the organizers' `check_allocation.py`, which passed.
-4. **Human decisions.** *(Team: describe yours, e.g. the product concept and screen scope from the Designathon, the priority policy, review of the generated code, the deployment and accounts, the demo video.)*
+- **Code:** the planning engine, the API, the database schema and seed, the web app screens, and the offline sync were generated with Claude Code from our Designathon specification, then reviewed and tested by the team.
+- **Tests:** the planner was specified as tests first, using the booklet's worked examples (101 min trip, VEH036 64/40 min trips, the 55.7 kg overweight case, the S1-078 oversize order). An end-to-end test covers all four roles. The S1 allocation was checked independently with the organisers' `check_allocation.py`.
+- **Docs:** the README, architecture, data model and this disclosure were drafted with AI and edited by the team.
 
 ## Not AI-assisted
 
-*(Team: list, e.g. the Designathon research and concept decisions, Figma design work, video narration.)*
-
-## Verification
-
-- `npm test` runs 25 tests (15 planner, 10 end-to-end API).
-- The UI was exercised in a browser for every role before submission.
+- The product concept, scope and screen flows (our Designathon submission), which served as the build specification.
+- Product and engineering decisions: what to build, keeping the datasets out of the public repository, and the hosting choice.
+- Reviewing and testing the running app across all four roles, setting up deployment (GitHub, Render, Supabase), and the demo video voice-over.
